@@ -13,10 +13,15 @@
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "latest",
     "@midnight-ntwrk/midnight-js-contracts": "latest",
-    "@midnight-ntwrk/midnight-js-types": "latest"
+    "@midnight-ntwrk/midnight-js-types": "latest",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.7.0",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   }
