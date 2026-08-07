@@ -1,0 +1,23 @@
+{
+  "name": "zkCheck-dapp",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "compile": "/home/claudia2408/.compact/versions/0.31.1/x86_64-unknown-linux-musl/compactc contracts/zkCheck.compact src/managed/contract",
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "latest",
+    "@midnight-ntwrk/midnight-js-contracts": "latest",
+    "@midnight-ntwrk/midnight-js-types": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}
