@@ -2,3 +2,9 @@ node_modules/
 dist/
 .env
 *.log
+.env
+.env
+dist-cli/
+midnight-level-db/
+dist-cli/
+midnight-level-db/

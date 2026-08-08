@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "strict": true,
     "esModuleInterop": true,
@@ -11,5 +11,6 @@
     "rootDir": ".",
     "outDir": "./dist"
   },
-  "include": ["src/**/*", "vite.config.ts"]
+  "include": ["src/**/*", "contracts/**/*", "vite.config.ts"],
+  "exclude": ["node_modules"]
 }

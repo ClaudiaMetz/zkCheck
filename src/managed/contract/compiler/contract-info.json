@@ -4,45 +4,10 @@
   "runtime-version": "0.16.0",
   "circuits": [
     {
-      "name": "crearProceso",
+      "name": "postular",
       "pure": false,
       "proof": true,
       "arguments": [
-        {
-          "name": "procesoId",
-          "type": {
-            "type-name": "Bytes",
-            "length": 32
-          }
-        },
-        {
-          "name": "ingresoMaximo",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 4294967295
-          }
-        },
-        {
-          "name": "promedioMinimo",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 255
-          }
-        },
-        {
-          "name": "edadMinima",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 255
-          }
-        },
-        {
-          "name": "edadMaxima",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 255
-          }
-        }
       ],
       "result-type": {
         "type-name": "Tuple",
@@ -51,17 +16,10 @@
       }
     },
     {
-      "name": "postular",
+      "name": "reclamarBeca",
       "pure": false,
       "proof": true,
       "arguments": [
-        {
-          "name": "procesoId",
-          "type": {
-            "type-name": "Bytes",
-            "length": 32
-          }
-        }
       ],
       "result-type": {
         "type-name": "Tuple",
@@ -101,60 +59,25 @@
         "type-name": "Bytes",
         "length": 32
       }
+    },
+    {
+      "name": "contactoPostulante",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
     }
   ],
   "contracts": [
   ],
   "ledger": [
     {
-      "name": "procesos",
+      "name": "totalPostulaciones",
       "index": 0,
       "exported": true,
-      "storage": "Map",
-      "key": {
-        "type-name": "Bytes",
-        "length": 32
-      },
-      "value": {
-        "type-name": "Struct",
-        "name": "Proceso",
-        "elements": [
-          {
-            "name": "ingresoMaximo",
-            "type": {
-              "type-name": "Uint",
-              "maxval": 4294967295
-            }
-          },
-          {
-            "name": "promedioMinimo",
-            "type": {
-              "type-name": "Uint",
-              "maxval": 255
-            }
-          },
-          {
-            "name": "edadMinima",
-            "type": {
-              "type-name": "Uint",
-              "maxval": 255
-            }
-          },
-          {
-            "name": "edadMaxima",
-            "type": {
-              "type-name": "Uint",
-              "maxval": 255
-            }
-          },
-          {
-            "name": "activo",
-            "type": {
-              "type-name": "Boolean"
-            }
-          }
-        ]
-      }
+      "storage": "Counter"
     },
     {
       "name": "elegibles",
@@ -167,6 +90,20 @@
       },
       "value": {
         "type-name": "Boolean"
+      }
+    },
+    {
+      "name": "reclamos",
+      "index": 2,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Bytes",
+        "length": 32
       }
     }
   ]

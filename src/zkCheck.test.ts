@@ -1,119 +1,166 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { zkCheckDapp } from './api.js';
-import crypto from 'node:crypto';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { WebSocket } from 'ws';
+import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import {
+  deployContract,
+  submitCallTx,
+  type DeployedContract,
+} from '@midnight-ntwrk/midnight-js-contracts';
+import type { ContractAddress } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
+import { type EnvironmentConfiguration } from '@midnight-ntwrk/testkit-js';
+import pino from 'pino';
 
-describe('zkCheck Contract Logic Tests', () => {
-  const contractAddress = "0x0000000000000000000000000000000000000000000000000000000000000000";
-  const procesoId = "beca-test-2026";
+import { getConfig } from './config.js';
+import { MidnightWalletProvider, syncWallet, type WalletSecret } from './wallet.js';
+import { buildProviders, type ZkCheckProviders } from './providers.js';
+import { Contract, ledger, zkConfigPath, makeZkCheckContract } from '../contracts/index.js';
 
-  // Simulamos la tabla de elegibles del ledger en memoria
-  let elegiblesMap: Set<string>;
-  let mockWallet: any;
-  let dapp: zkCheckDapp;
+globalThis.WebSocket = WebSocket;
 
-  beforeEach(() => {
-    elegiblesMap = new Set<string>();
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
 
-    mockWallet = {
-      callContract: async (params: any) => {
-        if (params.circuit === 'postular') {
-          const witnesses = params.witnesses;
-          const [, [ingreso, promedio, edad]] = witnesses.datosPostulante({});
-          const [, secreto] = witnesses.secretoPostulante({});
+const ADMIN_SEED =
+  '0000000000000000000000000000000000000000000000000000000000000001';
 
-          // Simulación de los asserts del circuito Compact
-          if (ingreso > 1500000n) {
-            throw new Error("Assertion failed: No cumple criterio de ingresos");
-          }
-          if (promedio < 75n) {
-            throw new Error("Assertion failed: No cumple promedio minimo");
-          }
-          if (edad < 18n || edad > 25n) {
-            throw new Error("Assertion failed: Fuera del rango de edad");
-          }
+const logger = pino({
+  level: process.env['LOG_LEVEL'] ?? 'info',
+  transport: { target: 'pino-pretty' },
+});
 
-          // Armamos una clave unica basada en el secreto y el proceso (simula postulanteId)
-          const postulanteHash = Buffer.from(secreto).toString('hex');
+const network = process.env['MIDNIGHT_NETWORK'] ?? 'local';
 
-          // Assert de duplicado: !elegibles.member(id)
-          if (elegiblesMap.has(postulanteHash)) {
-            throw new Error("Assertion failed: Ya te postulaste a este proceso");
-          }
+function resolveSecret(): WalletSecret {
+  return { kind: 'seed', value: ADMIN_SEED };
+}
 
-          // Guardamos el registro si pasa todas las validaciones
-          elegiblesMap.add(postulanteHash);
-        }
-        return { wait: async () => {} };
-      }
+function datosElegibles(secreto: Uint8Array, contacto?: Uint8Array) {
+  return { ingreso: 1_200_000n, promedio: 85n, edad: 21n, secreto, contacto };
+}
+
+const POSTULANTE_STATE_ID = 'zkCheckPostulanteState';
+
+describe(`zkCheck Contract (${network})`, () => {
+  let wallet: MidnightWalletProvider;
+  let providers: ZkCheckProviders;
+  let contractAddress: ContractAddress;
+
+  const config = getConfig();
+  const secret = resolveSecret();
+  const syncTimeoutMs = 10 * 60_000;
+
+  async function queryLedger() {
+    const state = await providers.publicDataProvider.queryContractState(contractAddress);
+    expect(state).not.toBeNull();
+    return ledger(state!.data);
+  }
+
+  beforeAll(async () => {
+    setNetworkId(config.networkId);
+
+    const envConfig: EnvironmentConfiguration = {
+      walletNetworkId: config.networkId,
+      networkId: config.networkId,
+      indexer: config.indexer,
+      indexerWS: config.indexerWS,
+      node: config.node,
+      nodeWS: config.nodeWS,
+      faucet: config.faucet,
+      proofServer: config.proofServer,
     };
 
-    dapp = new zkCheckDapp(contractAddress, mockWallet);
-  });
+    wallet = await MidnightWalletProvider.build(logger, envConfig, secret);
+    await wallet.start();
+    await syncWallet(logger, wallet.wallet, syncTimeoutMs);
 
-  it('debe aceptar a un alumno que cumple todos los requisitos', async () => {
-    const secreto = crypto.randomBytes(32);
-    await expect(
-      dapp.postular(procesoId, {
-        ingreso: 1200000n,
-        promedio: 85n,
-        edad: 21n,
-        secreto,
-      })
-    ).resolves.not.toThrow();
-  });
+    providers = buildProviders(wallet, zkConfigPath, config);
+    logger.info(`Providers initialized on '${network}'. Ready to test!`);
 
-  it('debe RECHAZAR a un postulante que intenta presentarse dos veces', async () => {
-    // Usamos la misma clave secreta para simular a la misma persona
-    const secretoCompartido = crypto.randomBytes(32);
-    const datosPostulacion = {
-      ingreso: 1200000n,
-      promedio: 85n,
-      edad: 21n,
-      secreto: secretoCompartido,
-    };
-
-    // 1da postulación: Pasa
-    await expect(dapp.postular(procesoId, datosPostulacion)).resolves.not.toThrow();
-
-    // 2da postulación con el mismo secreto: Rebota
-    await expect(dapp.postular(procesoId, datosPostulacion)).rejects.toThrow(
-      "Ya te postulaste a este proceso"
+    const compiled = makeZkCheckContract(datosElegibles(new Uint8Array(32)));
+    const deployed: DeployedContract<Contract> = await (deployContract<Contract>)(
+      providers,
+      {
+        compiledContract: compiled,
+        privateStateId: POSTULANTE_STATE_ID,
+        initialPrivateState: {},
+      },
     );
+    contractAddress = deployed.deployTxData.public.contractAddress;
+    logger.info(`Contract deployed at: ${contractAddress}`);
   });
 
-  it('debe RECHAZAR a un alumno que supera el ingreso maximo', async () => {
-    const secreto = crypto.randomBytes(32);
-    await expect(
-      dapp.postular(procesoId, {
-        ingreso: 2000000n,
-        promedio: 90n,
-        edad: 20n,
-        secreto,
-      })
-    ).rejects.toThrow("No cumple criterio de ingresos");
+  afterAll(async () => {
+    if (wallet) {
+      logger.info('Stopping wallet...');
+      await wallet.stop();
+    }
   });
 
-  it('debe RECHAZAR a un alumno con promedio menor al minimo', async () => {
-    const secreto = crypto.randomBytes(32);
-    await expect(
-      dapp.postular(procesoId, {
-        ingreso: 1000000n,
-        promedio: 60n,
-        edad: 22n,
-        secreto,
-      })
-    ).rejects.toThrow("No cumple promedio minimo");
+  async function postularCon(datos: ReturnType<typeof datosElegibles>) {
+    const compiled = makeZkCheckContract(datos);
+    return (submitCallTx<Contract, 'postular'>)(providers, {
+      compiledContract: compiled,
+      contractAddress,
+      privateStateId: POSTULANTE_STATE_ID,
+      circuitId: 'postular',
+    });
+  }
+
+  async function reclamarCon(datos: ReturnType<typeof datosElegibles>) {
+    const compiled = makeZkCheckContract(datos);
+    return (submitCallTx<Contract, 'reclamarBeca'>)(providers, {
+      compiledContract: compiled,
+      contractAddress,
+      privateStateId: POSTULANTE_STATE_ID,
+      circuitId: 'reclamarBeca',
+    });
+  }
+
+  it('un postulante que cumple todos los criterios queda registrado como elegible', async () => {
+    const secreto = crypto.getRandomValues(new Uint8Array(32));
+    await expect(postularCon(datosElegibles(secreto))).resolves.toBeDefined();
+
+    const estado = await queryLedger();
+    expect(estado.totalPostulaciones).toBeGreaterThan(0n);
   });
 
-  it('debe RECHAZAR a un alumno fuera del rango de edad permitido', async () => {
-    const secreto = crypto.randomBytes(32);
-    await expect(
-      dapp.postular(procesoId, {
-        ingreso: 1000000n,
-        promedio: 80n,
-        edad: 16n,
-        secreto,
-      })
-    ).rejects.toThrow("Fuera del rango de edad");
+  it('un postulante con ingreso por encima del maximo SE POSTULA pero queda no-elegible', async () => {
+    const secreto = crypto.getRandomValues(new Uint8Array(32));
+    const datos = { ...datosElegibles(secreto), ingreso: 2_000_000n };
+
+    await expect(postularCon(datos)).resolves.toBeDefined();
+    await expect(reclamarCon(datos)).rejects.toThrow('No sos elegible para esta beca');
+  });
+
+  it('rechaza una segunda postulacion con el mismo secreto', async () => {
+    const secreto = crypto.getRandomValues(new Uint8Array(32));
+    const datos = datosElegibles(secreto);
+    await postularCon(datos);
+    await expect(postularCon(datos)).rejects.toThrow('Ya te postulaste');
+  });
+
+  it('un elegible puede reclamar y recibir su contacto guardado', async () => {
+    const secreto = crypto.getRandomValues(new Uint8Array(32));
+    const contactoHash = crypto.getRandomValues(new Uint8Array(32));
+    const datos = datosElegibles(secreto, contactoHash);
+
+    await postularCon(datos);
+    await expect(reclamarCon(datos)).resolves.toBeDefined();
+  });
+
+  it('rechaza reclamar sin haberse postulado antes', async () => {
+    const secretoNuevo = crypto.getRandomValues(new Uint8Array(32));
+    const datos = datosElegibles(secretoNuevo);
+    await expect(reclamarCon(datos)).rejects.toThrow('No te postulaste');
+  });
+
+  it('rechaza reclamar dos veces', async () => {
+    const secreto = crypto.getRandomValues(new Uint8Array(32));
+    const datos = datosElegibles(secreto, crypto.getRandomValues(new Uint8Array(32)));
+
+    await postularCon(datos);
+    await reclamarCon(datos);
+    await expect(reclamarCon(datos)).rejects.toThrow('Ya reclamaste esta beca');
   });
 });

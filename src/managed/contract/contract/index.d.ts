@@ -5,65 +5,42 @@ export type Witnesses<PS> = {
                                                                                bigint,
                                                                                bigint]];
   secretoPostulante(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];
+  contactoPostulante(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];
 }
 
 export type ImpureCircuits<PS> = {
-  crearProceso(context: __compactRuntime.CircuitContext<PS>,
-               procesoId_0: Uint8Array,
-               ingresoMaximo_0: bigint,
-               promedioMinimo_0: bigint,
-               edadMinima_0: bigint,
-               edadMaxima_0: bigint): __compactRuntime.CircuitResults<PS, []>;
-  postular(context: __compactRuntime.CircuitContext<PS>, procesoId_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  postular(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  reclamarBeca(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type ProvableCircuits<PS> = {
-  crearProceso(context: __compactRuntime.CircuitContext<PS>,
-               procesoId_0: Uint8Array,
-               ingresoMaximo_0: bigint,
-               promedioMinimo_0: bigint,
-               edadMinima_0: bigint,
-               edadMaxima_0: bigint): __compactRuntime.CircuitResults<PS, []>;
-  postular(context: __compactRuntime.CircuitContext<PS>, procesoId_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  postular(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  reclamarBeca(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type PureCircuits = {
 }
 
 export type Circuits<PS> = {
-  crearProceso(context: __compactRuntime.CircuitContext<PS>,
-               procesoId_0: Uint8Array,
-               ingresoMaximo_0: bigint,
-               promedioMinimo_0: bigint,
-               edadMinima_0: bigint,
-               edadMaxima_0: bigint): __compactRuntime.CircuitResults<PS, []>;
-  postular(context: __compactRuntime.CircuitContext<PS>, procesoId_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  postular(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  reclamarBeca(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type Ledger = {
-  procesos: {
-    isEmpty(): boolean;
-    size(): bigint;
-    member(key_0: Uint8Array): boolean;
-    lookup(key_0: Uint8Array): { ingresoMaximo: bigint,
-                                 promedioMinimo: bigint,
-                                 edadMinima: bigint,
-                                 edadMaxima: bigint,
-                                 activo: boolean
-                               };
-    [Symbol.iterator](): Iterator<[Uint8Array, { ingresoMaximo: bigint,
-  promedioMinimo: bigint,
-  edadMinima: bigint,
-  edadMaxima: bigint,
-  activo: boolean
-}]>
-  };
+  readonly totalPostulaciones: bigint;
   elegibles: {
     isEmpty(): boolean;
     size(): bigint;
     member(key_0: Uint8Array): boolean;
     lookup(key_0: Uint8Array): boolean;
     [Symbol.iterator](): Iterator<[Uint8Array, boolean]>
+  };
+  reclamos: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(key_0: Uint8Array): boolean;
+    lookup(key_0: Uint8Array): Uint8Array;
+    [Symbol.iterator](): Iterator<[Uint8Array, Uint8Array]>
   };
 }
 

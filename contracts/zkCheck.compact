@@ -2,62 +2,46 @@ pragma language_version 0.23;
 
 import CompactStandardLibrary;
 
-struct Proceso {
-  ingresoMaximo: Uint<32>,
-  promedioMinimo: Uint<8>,
-  edadMinima: Uint<8>,
-  edadMaxima: Uint<8>,
-  activo: Boolean,
-}
-
-export ledger procesos: Map<Bytes<32>, Proceso>;
+export ledger totalPostulaciones: Counter;
 export ledger elegibles: Map<Bytes<32>, Boolean>;
+export ledger reclamos: Map<Bytes<32>, Bytes<32>>;
 
 witness datosPostulante(): [Uint<32>, Uint<8>, Uint<8>];
 witness secretoPostulante(): Bytes<32>;
+witness contactoPostulante(): Bytes<32>;
 
-circuit postulanteId(procesoId: Bytes<32>): Bytes<32> {
+circuit cumpleCriterios(ingreso: Uint<32>, promedio: Uint<8>, edad: Uint<8>): Boolean {
+  const cumpleIngreso = ingreso <= 1500000;
+  const cumplePromedio = promedio >= 75;
+  const cumpleEdad = edad >= 18 && edad <= 25;
+  return cumpleIngreso && cumplePromedio && cumpleEdad;
+}
+
+circuit postulanteId(): Bytes<32> {
   const sk = secretoPostulante();
-  return persistentHash<Vector<3, Bytes<32>>>([
+  return persistentHash<Vector<2, Bytes<32>>>([
     pad(32, "beca:postulante:"),
-    procesoId,
     sk
   ]);
 }
 
-export circuit crearProceso(
-  procesoId: Bytes<32>,
-  ingresoMaximo: Uint<32>,
-  promedioMinimo: Uint<8>,
-  edadMinima: Uint<8>,
-  edadMaxima: Uint<8>
-): [] {
-  procesos.insert(
-    disclose(procesoId), 
-    Proceso {
-      ingresoMaximo: disclose(ingresoMaximo),
-      promedioMinimo: disclose(promedioMinimo),
-      edadMinima: disclose(edadMinima),
-      edadMaxima: disclose(edadMaxima),
-      activo: disclose(true),
-    }
-  );
+export circuit postular(): [] {
+  const [ingreso, promedio, edad] = datosPostulante();
+  const esElegible = cumpleCriterios(ingreso, promedio, edad);
+
+  const id = disclose(postulanteId());
+  assert(!elegibles.member(id), "Ya te postulaste");
+  elegibles.insert(id, disclose(esElegible));
+  totalPostulaciones.increment(1);
 }
 
-export circuit postular(procesoId: Bytes<32>): [] {
-  const pId = disclose(procesoId);
-  assert(procesos.member(pId), "Proceso inexistente");
-  const proceso = procesos.lookup(pId);
-  assert(proceso.activo, "Proceso cerrado");
+export circuit reclamarBeca(): [] {
+  const id = disclose(postulanteId());
 
-  const [ingreso, promedio, edad] = datosPostulante();
+  assert(elegibles.member(id), "No te postulaste");
+  assert(elegibles.lookup(id), "No sos elegible para esta beca");
+  assert(!reclamos.member(id), "Ya reclamaste esta beca");
 
-  const cumpleIngreso = ingreso <= proceso.ingresoMaximo;
-  const cumplePromedio = promedio >= proceso.promedioMinimo;
-  const cumpleEdad = edad >= proceso.edadMinima && edad <= proceso.edadMaxima;
-  const esElegible = cumpleIngreso && cumplePromedio && cumpleEdad;
-
-  const id = disclose(postulanteId(procesoId));
-  assert(!elegibles.member(id), "Ya te postulaste a este proceso");
-  elegibles.insert(id, disclose(esElegible));
+  const contacto = contactoPostulante();
+  reclamos.insert(id, disclose(contacto));
 }

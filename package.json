@@ -5,24 +5,36 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "compile": "/home/claudia2408/.compact/versions/0.31.1/x86_64-unknown-linux-musl/compactc contracts/zkCheck.compact src/managed/contract",
-    "build": "tsc",
-    "start": "node dist/cli.js",
-    "test": "vitest run"
+    "compile": "compactc contracts/zkCheck.compact src/managed/contract",
+    "build": "vite build",
+    "cli:build": "tsc -p tsconfig.cli.json",
+    "env:up": "docker compose up -d --wait",
+    "start": "node dist-cli/cli.js",
+    "test": "vitest run --no-file-parallelism"
   },
   "dependencies": {
-    "@midnight-ntwrk/compact-runtime": "latest",
-    "@midnight-ntwrk/midnight-js-contracts": "latest",
-    "@midnight-ntwrk/midnight-js-types": "latest",
+    "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
+    "@midnight-ntwrk/midnight-js-network-id": "4.1.1",
+    "@midnight-ntwrk/midnight-js-types": "4.1.1",
+    "@midnight-ntwrk/testkit-js": "4.1.1",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "ws": "^8.18.0"
+  },
+  "overrides": {
+    "@midnight-ntwrk/onchain-runtime-v3": "3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",
     "typescript": "^5.0.0",
+    "vite": "^6.0.0",
     "vitest": "^1.0.0"
   }
 }
