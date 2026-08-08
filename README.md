@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../src/logo.png" alt="Logo ZKcheck" width="80" />
+  <img src="./src/image.png" alt="Logo ZKcheck" width="80" />
 </p>
 
 # ZKcheck — Selección de Beca con Pruebas de Conocimiento Cero
