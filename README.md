@@ -61,7 +61,7 @@ Resultado: elegible / no elegible (sin revelar datos)
 
 
 <p align="center">
-  <img src="./assets/verification_flow.png" alt="Diagrama de flujo de verificación: Rules → Eligibility → Verification → Result" width="600" />
+  <img img src="./src/verification_flow.png" alt="Diagrama de flujo de verificación: Rules → Eligibility → Verification → Result" width="600" />
 </p>
 ### Flujo de verificación
 El flujo simplificado de verificación es:
